@@ -1709,3 +1709,24 @@ export async function getSettings() {
     where: { id: clientId } 
   });
 }
+// 👇 أضف هذه الدالة في نهاية ملف app/actions.ts
+export async function sendAdminReply(formData: FormData) {
+  "use server";
+  
+  const clientId = formData.get("clientId") as string;
+  const content = formData.get("content") as string;
+
+  if (!clientId || !content) return;
+
+  // إنشاء رسالة جديدة في قاعدة البيانات
+  await db.message.create({
+    data: {
+      content,
+      role: "ADMIN",
+      clientId,
+    },
+  });
+
+  // تحديث الصفحة لرؤية الرسالة الجديدة فوراً
+  revalidatePath(`/saas-admin/messages/${clientId}`);
+}
