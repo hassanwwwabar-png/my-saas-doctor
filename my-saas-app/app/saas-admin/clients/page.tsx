@@ -1,20 +1,15 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { 
-  Users, Search, Eye, MoreHorizontal, 
+  Users, Search, Eye, 
   CheckCircle, XCircle, Building, Mail 
 } from "lucide-react";
 
 export default async function ClientsPage() {
   
-  // 1. جلب جميع العملاء (الأحدث أولاً)
+  // 1. جلب العملاء بدون علاقات معقدة قد تكسر الموقع
   const clients = await db.client.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      _count: {
-        select: { paymentRequests: true }
-      }
-    }
   });
 
   return (
@@ -66,7 +61,7 @@ export default async function ClientsPage() {
                   <td className="p-5">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center font-black text-sm uppercase">
-                        {client.doctorName?.[0]}
+                        {client.doctorName?.[0] || "D"}
                       </div>
                       <div>
                         <p className="font-bold text-slate-800 text-sm">{client.doctorName}</p>
@@ -91,15 +86,15 @@ export default async function ClientsPage() {
                     </div>
                   </td>
 
-                  {/* Subscription Status */}
+                  {/* Status (تم تصحيح الاسم هنا) */}
                   <td className="p-5">
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide ${
-                      client.subscriptionStatus === 'ACTIVE' 
+                      client.status === 'Active' 
                         ? 'bg-green-100 text-green-700' 
                         : 'bg-red-100 text-red-700'
                     }`}>
-                      {client.subscriptionStatus === 'ACTIVE' ? <CheckCircle className="w-3 h-3"/> : <XCircle className="w-3 h-3"/>}
-                      {client.subscriptionStatus || "INACTIVE"}
+                      {client.status === 'Active' ? <CheckCircle className="w-3 h-3"/> : <XCircle className="w-3 h-3"/>}
+                      {client.status || "INACTIVE"}
                     </span>
                   </td>
 
@@ -111,7 +106,8 @@ export default async function ClientsPage() {
                   {/* Actions */}
                   <td className="p-5 text-right">
                     <Link 
-                      href={`/saas-admin/clients/${client.id}`} 
+                      // تم تصحيح الرابط ليتوافق مع المجلدات الموجودة
+                      href={`/saas-admin/messages/${client.id}`} 
                       className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all text-xs font-bold shadow-sm"
                     >
                       <Eye className="w-4 h-4" /> View Details
