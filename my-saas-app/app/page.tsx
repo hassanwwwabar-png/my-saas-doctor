@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
-import { loginAsDemo } from "@/app/actions";
+// import { db } from "@/lib/db"; // 👈 تم التعطيل مؤقتاً لتجنب خطأ الجدول المفقود
+// import { loginAsDemo } from "@/app/actions"; 
 import { 
   Stethoscope, ArrowRight, CheckCircle, Activity, 
   Printer, ShieldCheck, Star, PlayCircle 
@@ -8,13 +8,16 @@ import {
 
 export default async function LandingPage() {
   
-  const config = await db.saasSettings.findUnique({ where: { id: "config" } }) 
-                 || { monthlyPrice: 50, trialDays: 20 };
+  // ✅ استخدام إعدادات ثابتة بدلاً من قاعدة البيانات لتجنب الأخطاء حالياً
+  const config = { monthlyPrice: 50, trialDays: 20 };
+  
+  // الكود الأصلي المعطل (يمكنك تفعيله بعد إضافة الجدول للـ Schema)
+  // const config = await db.saasSettings.findUnique({ where: { id: "config" } }) || { monthlyPrice: 50, trialDays: 20 };
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
       
-      {/* Navbar (خارج الداشبورد) */}
+      {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
            
@@ -28,7 +31,7 @@ export default async function LandingPage() {
            </div>
 
            <div className="flex items-center gap-4">
-             {/* زر الدخول (يأخذك لصفحة Login منفصلة) */}
+             {/* زر الدخول */}
              <Link href="/login" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors hidden sm:block">
                Log In
              </Link>
@@ -54,8 +57,7 @@ export default async function LandingPage() {
                  Start {config.trialDays}-Day Free Trial <ArrowRight className="w-5 h-5" />
                </Link>
                
-              
-                 
+               {/* Demo Button removed to prevent error if function missing */}
              </div>
         </section>
       </main>
