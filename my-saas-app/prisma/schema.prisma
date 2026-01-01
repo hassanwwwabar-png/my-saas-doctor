@@ -24,6 +24,7 @@ model Client {
   phone     String?  // الهاتف
   address   String?  // العنوان
   city      String?  // المدينة
+  messages   Message[] 
   
   nextPaymentDate     DateTime?
   lastPaymentDate     DateTime?
@@ -145,6 +146,16 @@ model PatientDocument {
 
   patientId String
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  role      String   // "ADMIN" or "USER"
+  createdAt DateTime @default(now())
+  
+  // 👇 تأكد من وجود هذه الأسطر لربط الرسالة بالعميل
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
 }
 
 // ---------------------------------------------------------

@@ -1,20 +1,23 @@
 import { db } from "@/lib/db";
-import { sendAdminReply } from "@/app/actions"; // 👈 سنستخدم دالة الرد التي أنشأناها سابقاً
+import { sendAdminReply } from "@/app/actions";
 import { Send, User, ShieldCheck, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 export default async function AdminChatDetail({ params }: { params: { clientId: string } }) {
+  // انتظر قراءة params
   const { clientId } = await params;
 
   // جلب الطبيب ورسائله
   const client = await db.client.findUnique({
     where: { id: clientId },
     include: { 
+      // @ts-ignore - نستخدم هذا في حال لم يقم الـ VS Code بتحديث النوع فوراً
       messages: { orderBy: { createdAt: 'asc' } } 
     }
   });
 
-  if (!client) return <div>Client not found</div>;
+  if (!client) return notFound();
 
   return (
     <div className="h-[calc(100vh-40px)] flex flex-col max-w-4xl mx-auto bg-white dark:bg-slate-900 shadow-2xl border-x border-slate-200 dark:border-slate-800">
@@ -35,7 +38,8 @@ export default async function AdminChatDetail({ params }: { params: { clientId: 
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-slate-950">
-        {client.messages.map((msg) => {
+        {/* @ts-ignore */}
+        {client.messages?.map((msg: any) => {
           const isAdmin = msg.role === 'ADMIN';
           return (
             <div key={msg.id} className={`flex w-full ${isAdmin ? 'justify-end' : 'justify-start'}`}>
