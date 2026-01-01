@@ -1,6 +1,5 @@
 import Link from "next/link";
-// import { db } from "@/lib/db"; // 👈 تم التعطيل مؤقتاً لتجنب خطأ الجدول المفقود
-// import { loginAsDemo } from "@/app/actions"; 
+import { db } from "@/lib/db"; // ✅ قمنا بتفعيل الاتصال بقاعدة البيانات
 import { 
   Stethoscope, ArrowRight, CheckCircle, Activity, 
   Printer, ShieldCheck, Star, PlayCircle 
@@ -8,11 +7,19 @@ import {
 
 export default async function LandingPage() {
   
-  // ✅ استخدام إعدادات ثابتة بدلاً من قاعدة البيانات لتجنب الأخطاء حالياً
-  const config = { monthlyPrice: 50, trialDays: 20 };
+  // 1. محاولة جلب الإعدادات الحقيقية من قاعدة البيانات
+  let settings = null;
   
-  // الكود الأصلي المعطل (يمكنك تفعيله بعد إضافة الجدول للـ Schema)
-  // const config = await db.saasSettings.findUnique({ where: { id: "config" } }) || { monthlyPrice: 50, trialDays: 20 };
+  try {
+    settings = await db.saasSettings.findUnique({ 
+      where: { id: "config" } // نفترض أن معرف الإعدادات هو "config"
+    });
+  } catch (error) {
+    console.log("Database not ready yet, using defaults.");
+  }
+
+  // 2. استخدام الإعدادات الحقيقية أو الافتراضية إذا لم توجد
+  const config = settings || { monthlyPrice: 50, trialDays: 20 };
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
@@ -31,7 +38,6 @@ export default async function LandingPage() {
            </div>
 
            <div className="flex items-center gap-4">
-             {/* زر الدخول */}
              <Link href="/login" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors hidden sm:block">
                Log In
              </Link>
@@ -52,12 +58,14 @@ export default async function LandingPage() {
                </span>
              </h1>
 
-             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
+             <p className="text-slate-500 mb-8 font-bold text-lg">
+                Join now for only <span className="text-blue-600">${config.monthlyPrice}/mo</span> after trial.
+             </p>
+
+             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-2">
                <Link href="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl text-lg font-bold transition-all shadow-xl flex items-center justify-center gap-2">
                  Start {config.trialDays}-Day Free Trial <ArrowRight className="w-5 h-5" />
                </Link>
-               
-               {/* Demo Button removed to prevent error if function missing */}
              </div>
         </section>
       </main>
