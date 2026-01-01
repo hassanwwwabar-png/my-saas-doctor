@@ -1,16 +1,14 @@
 import { db } from "@/lib/db";
-import { updatePatient } from "@/app/actions";
+import { updatePatientNotes } from "@/app/actions"; 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-// 👇 لاحظ تغيير النوع هنا
 export default async function EditPatientPage({ params }: { params: { patientId: string } }) {
-  // 👇 قراءة patientId بدلاً من id
   const { patientId } = await params;
 
   const patient = await db.patient.findUnique({
-    where: { id: patientId }, // 👈 استخدام المتغير الجديد
+    where: { id: patientId },
   });
 
   if (!patient) return notFound();
@@ -24,17 +22,18 @@ export default async function EditPatientPage({ params }: { params: { patientId:
       <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
         <h1 className="text-2xl font-bold text-slate-900 mb-6">Edit Patient</h1>
         
-        <form action={updatePatient} className="space-y-4">
+        <form action={updatePatientNotes} className="space-y-4">
           <input type="hidden" name="id" value={patient.id} />
           
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-bold text-slate-700">First Name</label>
-              <input name="firstName" defaultValue={patient.firstName} required className="w-full px-4 py-2 border border-slate-200 rounded-lg" />
+              {/* أضفنا || "" لضمان عدم تمرير null */}
+              <input name="firstName" defaultValue={patient.firstName || ""} required className="w-full px-4 py-2 border border-slate-200 rounded-lg" />
             </div>
             <div>
               <label className="text-sm font-bold text-slate-700">Last Name</label>
-              <input name="lastName" defaultValue={patient.lastName} required className="w-full px-4 py-2 border border-slate-200 rounded-lg" />
+              <input name="lastName" defaultValue={patient.lastName || ""} required className="w-full px-4 py-2 border border-slate-200 rounded-lg" />
             </div>
           </div>
 
@@ -45,12 +44,12 @@ export default async function EditPatientPage({ params }: { params: { patientId:
 
           <div>
             <label className="text-sm font-bold text-slate-700">Phone</label>
-            <input name="phone" defaultValue={patient.phone} required className="w-full px-4 py-2 border border-slate-200 rounded-lg" />
+            <input name="phone" defaultValue={patient.phone || ""} required className="w-full px-4 py-2 border border-slate-200 rounded-lg" />
           </div>
 
           <div>
             <label className="text-sm font-bold text-slate-700">Status</label>
-            <select name="status" defaultValue={patient.status} className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-white">
+            <select name="status" defaultValue={patient.status || "Active"} className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-white">
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
