@@ -239,10 +239,36 @@ date: "Date",           // ✅ أضف هذا    // ✅ وأضف هذا
     unlimitedPatients: "Unlimited Patients",
     subscription: "Subscription", // 👈 أضف هذا
     prioritySupport: "Priority Support",
+goodMorning: "Good Morning",
+  goodAfternoon: "Good Afternoon",
+  goodEvening: "Good Evening",
+  doctorTitle: "Dr.",
+  
+  paidInvoices: "Paid Invoices Only",
+  revenueGrowth: "Revenue Growth",
+  days: "Days",
+  revenue: "Revenue",
+  recentVisits: "Recent Visits",
+  viewAll: "View All",
+  
 },
 
   ar: {
     // --- Sidebar & Navigation ---
+    
+    goodMorning: "صباح الخير",
+  goodAfternoon: "مساء الخير",
+  goodEvening: "مساء الخير",
+  doctorTitle: "د.",
+  
+  totalAppointments: "مجموع المواعيد",
+  
+  paidInvoices: "الفواتير المدفوعة فقط",
+  revenueGrowth: "نمو الأرباح",
+  days: "أيام",
+  revenue: "الدخل",
+  recentVisits: "أحدث الزيارات",
+  viewAll: "عرض الكل",
     dashboard: "لوحة التحكم",
     patients: "المرضى",
     allReports: "التقارير",
@@ -695,6 +721,20 @@ patientId: "ID Patient",
     unlimitedPatients: "Patients illimités",
    subscription: "Abonnement", // 👈 أضف هذا
     prioritySupport: "Support prioritaire",
+    goodMorning: "Bonjour",
+  goodAfternoon: "Bon après-midi",
+  goodEvening: "Bonsoir",
+  doctorTitle: "Dr.",
+  
+  totalAppointments: "Total Rendez-vous",
+  
+  paidInvoices: "Factures payées uniquement",
+  revenueGrowth: "Croissance des revenus",
+  days: "Jours",
+  revenue: "Revenu",
+  recentVisits: "Visites récentes",
+  viewAll: "Voir tout",
+ 
 }
 };
 

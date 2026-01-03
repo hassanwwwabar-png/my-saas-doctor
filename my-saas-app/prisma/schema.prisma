@@ -80,10 +80,9 @@ model Patient {
   currentMedications String?
 
   status      String   @default("Active")
-  
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade) // 👈 أضف هذا
+  clientId String
   // الرابط مع الطبيب
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   
   // علاقات المريض
   appointments     Appointment[]

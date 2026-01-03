@@ -3,8 +3,11 @@
 import { useLanguage } from "@/components/language-context";
 import Link from "next/link";
 import { useState } from "react";
-import { Users, Plus, Search, Filter } from "lucide-react";
-import { AddVisitModal } from "@/components/dashboard/add-visit-modal"; // ✅ Imported
+// ✅ Added Trash2 for delete icon
+import { Users, Plus, Search, Filter, Trash2 } from "lucide-react";
+import { AddVisitModal } from "@/components/dashboard/add-visit-modal"; 
+// ✅ Imported delete action
+import { deletePatient } from "@/app/actions"; 
 
 interface PatientListProps {
   initialPatients: any[];
@@ -120,19 +123,39 @@ export function PatientList({ initialPatients }: PatientListProps) {
                   </td>
                   <td className="px-6 py-4 font-mono text-xs font-bold text-slate-600">{patient.phone || "N/A"}</td>
                   
-                  {/* 👇 Actions Column (Updated) */}
+                  {/* 👇 Actions Column (Updated with Delete) */}
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
                         
+                        {/* View Profile */}
                         <Link href={`/dashboard/patients/${patient.id}`} className="text-blue-600 font-black text-[10px] uppercase bg-blue-50 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-lg transition-all">
                         {t.viewProfile}
                         </Link>
 
-                        {/* ✅ The New Quick Visit Button */}
+                        {/* Quick Visit */}
                         <AddVisitModal 
                             patientId={patient.id} 
                             patientName={`${patient.firstName} ${patient.lastName}`} 
                         />
+
+                        {/* ✅ Delete Button */}
+                        <form 
+                          action={deletePatient} 
+                          onSubmit={(e) => {
+                            if(!confirm("Are you sure you want to delete this patient? All data will be lost.")) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
+                          <input type="hidden" name="id" value={patient.id} />
+                          <button 
+                            type="submit" 
+                            className="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-all border border-red-100"
+                            title="Delete Patient"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </form>
 
                     </div>
                   </td>

@@ -9,9 +9,10 @@ import {
 async function getSettings() {
   try {
     const data = await db.saasSettings.findUnique({ where: { id: "config" } });
-    return data || { monthlyPrice: 99, trialDays: 30 };
+    // ✅ تم تعديل القيم الافتراضية هنا أيضاً
+    return data || { monthlyPrice: 99, trialDays: 20 };
   } catch (error) {
-    return { monthlyPrice: 99, trialDays: 30 }; // قيم افتراضية للطوارئ
+    return { monthlyPrice: 99, trialDays: 20 }; 
   }
 }
 
@@ -50,12 +51,16 @@ export default async function LandingPage() {
                Your Practice, <br />
                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-400">Simplified.</span>
              </h1>
-             <p className="text-xl text-slate-500 mb-8 max-w-2xl mx-auto">
-                Join now for <span className="text-blue-600 font-bold">${config.monthlyPrice}/mo</span> after your trial.
+             
+             {/* ✅ تم التعديل: إزالة السعر */}
+             <p className="text-xl text-slate-500 mb-8 max-w-2xl mx-auto font-medium">
+                Join now and verify your clinic after your trial.
              </p>
+
              <div className="flex justify-center">
                <Link href="/register" className="h-14 px-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold flex items-center gap-3 shadow-xl transition-all hover:scale-105">
-                 Start {config.trialDays}-Day Free Trial <PlayCircle className="w-5 h-5" />
+                 {/* ✅ تم التعديل: جعلها 20 يوماً */}
+                 Start 20-Day Free Trial <PlayCircle className="w-5 h-5" />
                </Link>
              </div>
         </section>

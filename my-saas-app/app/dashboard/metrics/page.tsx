@@ -13,11 +13,26 @@ export default async function MetricsPage() {
     select: { gender: true, birthDate: true, createdAt: true }
   });
 
-  // 2. جلب كل المواعيد
-  const appointments = await db.appointment.findMany({
+  // 2. ✅ جلب المواعيد مع الفواتير (للحصول على السعر الصحيح)
+  const rawAppointments = await db.appointment.findMany({
     where: { clientId },
-    select: { status: true, price: true, date: true }
+    select: { 
+      status: true, 
+      date: true,
+      invoices: { // 👈 جلب الفواتير المرتبطة
+        select: { amount: true }
+      }
+    }
   });
+
+  // 🛠️ معالجة البيانات: استخراج السعر من الفاتورة ووضعه مع الموعد
+  // هذا يجعل باقي الكود يعمل دون الحاجة لتغيير الحسابات في الأسفل
+  const appointments = rawAppointments.map(apt => ({
+    status: apt.status,
+    date: apt.date,
+    // السعر هو مبلغ أول فاتورة، أو 0 إذا لم توجد
+    price: (apt.invoices && apt.invoices.length > 0) ? apt.invoices[0].amount : 0
+  }));
 
   // --- 📊 معالجة البيانات (Data Processing) ---
 
@@ -28,7 +43,7 @@ export default async function MetricsPage() {
   ];
 
   // ب) توزيع الأعمار (Age Groups)
-  const ageGroups = { '0-18': 0, '19-35': 0, '36-50': 0, '50+': 0 };
+  const ageGroups: Record<string, number> = { '0-18': 0, '19-35': 0, '36-50': 0, '50+': 0 };
   const today = new Date();
   patients.forEach(p => {
     if (p.birthDate) {
@@ -42,15 +57,17 @@ export default async function MetricsPage() {
   const ageData = Object.entries(ageGroups).map(([name, value]) => ({ name, value }));
 
   // ج) حالة المواعيد (Appointment Status)
+  // استخدام toUpperCase لتجنب مشاكل الأحرف (Scheduled vs scheduled)
   const statusStats = appointments.reduce((acc, curr) => {
-    acc[curr.status] = (acc[curr.status] || 0) + 1;
+    const statusKey = curr.status ? curr.status.charAt(0).toUpperCase() + curr.status.slice(1).toLowerCase() : 'Unknown';
+    acc[statusKey] = (acc[statusKey] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
   
   const statusData = [
-    { name: 'Completed', value: statusStats['Completed'] || 0, fill: '#10B981' },
-    { name: 'Cancelled', value: statusStats['Cancelled'] || 0, fill: '#EF4444' },
-    { name: 'Pending', value: statusStats['Pending'] || 0, fill: '#F59E0B' },
+    { name: 'Completed', value: statusStats['Completed'] || 0, fill: '#10B981' }, // أخضر
+    { name: 'Cancelled', value: statusStats['Cancelled'] || 0, fill: '#EF4444' }, // أحمر
+    { name: 'Scheduled', value: statusStats['Scheduled'] || 0, fill: '#3B82F6' }, // أزرق
   ];
 
   // د) الإيرادات الشهرية (Revenue Trend)
@@ -96,6 +113,7 @@ export default async function MetricsPage() {
         revenueData={revenueData}
         growthData={growthData}
         totalPatients={patients.length}
+        // ✅ حساب الإجمالي الآن سيعمل بشكل صحيح لأنه يستخدم السعر المستخرج
         totalRevenue={appointments.reduce((sum, a) => sum + (a.price || 0), 0)}
       />
     </div>

@@ -1,8 +1,9 @@
-"use client"; // 👈 هذا السطر ضروري جداً
+"use client";
 
 import { useState } from "react";
 import { Trash2, Loader2 } from "lucide-react";
 import { deleteClient } from "@/app/actions";
+import { useRouter } from "next/navigation"; // ✅ إضافة الراوتر
 
 interface Props {
   clientId: string;
@@ -10,21 +11,31 @@ interface Props {
 
 export function DeleteClientButton({ clientId }: Props) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter(); // ✅ تفعيل الراوتر
 
   const handleDelete = async (e: React.FormEvent) => {
-    e.preventDefault(); // منع الإرسال التلقائي
+    e.preventDefault();
 
-    // ✅ رسالة التأكيد
     const confirmed = window.confirm("Are you sure you want to delete this client permanently? This action cannot be undone.");
     
     if (confirmed) {
       setIsDeleting(true);
       
-      // إنشاء FormData لإرساله لدالة السيرفر
       const formData = new FormData();
-      formData.append("clientId", clientId);
+      // ✅ تصحيح الاسم: يجب أن يكون "id" وليس "clientId" ليتوافق مع app/actions.ts
+      formData.append("id", clientId); 
       
-      await deleteClient(formData);
+      try {
+        await deleteClient(formData);
+        
+        // ✅ توجيه يدوي لضمان عدم تعليق الصفحة
+        router.push("/saas-admin/clients");
+        router.refresh(); 
+      } catch (error) {
+        console.error("Delete failed", error);
+        setIsDeleting(false); // إيقاف التحميل في حال الخطأ
+        alert("Failed to delete. Please try again.");
+      }
     }
   };
 

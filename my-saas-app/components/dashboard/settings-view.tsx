@@ -1,7 +1,8 @@
 "use client";
 
 import { useLanguage } from "@/components/language-context";
-import { User, Building, MapPin, Phone, Stethoscope, Save, Settings as SettingsIcon, Lock, Mail } from "lucide-react";
+// ✅ Added CreditCard to imports
+import { User, Building, MapPin, Phone, Stethoscope, Save, Settings as SettingsIcon, Lock, Mail, CreditCard } from "lucide-react";
 import { updateSettings } from "@/app/actions";
 import { useState } from "react";
 
@@ -56,7 +57,7 @@ export function SettingsView({ client }: SettingsViewProps) {
           </div>
         </div>
 
-        {/* 2. Security Settings (NEW ✅) */}
+        {/* 2. Security Settings */}
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
           <h3 className="font-black text-lg text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-50 pb-4">
             <Lock className="w-5 h-5 text-red-600" /> Security & Login
@@ -127,6 +128,34 @@ export function SettingsView({ client }: SettingsViewProps) {
                 <MapPin className={`absolute top-3.5 w-4 h-4 text-slate-400 ${isRTL ? 'right-3' : 'left-3'}`} />
                 <input name="address" defaultValue={client.address} className={`w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:border-emerald-500 transition-all ${isRTL ? 'pr-9' : 'pl-9'}`} />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ✅ 4. Preferences (Currency) - NEW SECTION */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+          <h3 className="font-black text-lg text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-50 pb-4">
+            <CreditCard className="w-5 h-5 text-purple-600" /> Preferences
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase">Currency Symbol</label>
+              <div className="relative">
+                {/* Fixed Icon for Currency */}
+                <div className={`absolute top-3.5 w-4 h-4 text-slate-400 font-black flex items-center justify-center text-xs ${isRTL ? 'right-3' : 'left-3'}`}>$</div>
+                <select 
+                  name="currency" 
+                  defaultValue={client.currency || "MAD"} 
+                  className={`w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:border-purple-500 transition-all appearance-none ${isRTL ? 'pr-9' : 'pl-9'}`}
+                >
+                  <option value="MAD">Moroccan Dirham (MAD)</option>
+                  <option value="$">US Dollar ($)</option>
+                  <option value="€">Euro (€)</option>
+                  <option value="£">British Pound (£)</option>
+                  <option value="SAR">Saudi Riyal (SAR)</option>
+                </select>
+              </div>
+              <p className="text-[10px] text-slate-400 font-bold mt-1">This symbol will be used in your dashboard and invoices.</p>
             </div>
           </div>
         </div>

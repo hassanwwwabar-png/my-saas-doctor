@@ -227,6 +227,7 @@ export async function createPatient(formData: FormData) {
   revalidatePath("/dashboard/patients");
   redirect("/dashboard/patients");
 }
+
 export async function createAppointment(formData: FormData) {
   const clientId = await getClientId();
   if (!clientId) return;
@@ -236,38 +237,76 @@ export async function createAppointment(formData: FormData) {
   const type = formData.get("type")?.toString();
   const notes = formData.get("notes")?.toString();
   
-  // 1. نقرأ السعر من الفورم لاستخدامه في الفاتورة فقط
+  // قراءة السعر
   const priceRaw = formData.get("price")?.toString();
   const price = priceRaw ? parseFloat(priceRaw) : 0;
 
   if (patientId && date) {
-    await db.appointment.create({
-      data: {
-        clientId,
-        patientId,
-        date: new Date(date),
-        type: type || "Consultation",
-        notes: notes || "",
-        status: "Scheduled",
-        
-        // ❌ لاحظ: قمنا بحذف سطر (price: price) من هنا نهائياً
-        
-        // ✅ ونستخدمه هنا فقط لإنشاء الفاتورة
-        invoices: { 
-            create: {
-                amount: price, // السعر يذهب للفاتورة فقط
-                status: "PENDING",
-                clientId: clientId,
-                patientId: patientId,
-                date: new Date()
-            }
+    
+    // 1️⃣ نجهز بيانات الموعد الأساسية
+    const appointmentData: any = {
+      clientId,
+      patientId,
+      date: new Date(date),
+      type: type || "Consultation",
+      notes: notes || "",
+      status: "Scheduled",
+    };
+
+    // 2️⃣ الشرط الذكي: نضيف الفاتورة فقط إذا كان السعر أكبر من 0
+    if (price > 0) {
+      appointmentData.invoices = {
+        create: {
+          amount: price,
+          status: "PAID", 
+          clientId: clientId,
+          patientId: patientId,
+          date: new Date()
         }
-      }
+      };
+    }
+
+    // 3️⃣ إنشاء الموعد (الآن سيقبل البيانات سواء بفاتورة أو بدون)
+    await db.appointment.create({
+      data: appointmentData
+    });
+
+    // تحديث العملة (كما كان في كودك)
+    await db.client.update({
+        where: { id: clientId },
+        data: { currency: "$" } 
     });
   }
+  
+  revalidatePath("/dashboard");
   redirect(`/dashboard/patients/${patientId}`);
 }
 
+
+
+export async function markAsPaid(formData: FormData) {
+  const clientId = await getClientId();
+  if (!clientId) return;
+
+  const invoiceId = formData.get("invoiceId")?.toString();
+
+  if (invoiceId) {
+    // 1. تحديث حالة الفاتورة لتصبح مدفوعة
+    await db.invoice.update({
+      where: { 
+        id: invoiceId,
+        clientId: clientId // حماية إضافية: التأكد أن الفاتورة تخص هذا الطبيب
+      },
+      data: { 
+        status: "PAID" 
+      }
+    });
+
+    // 2. تحديث الصفحات لتظهر البيانات الجديدة فوراً
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/appointments");
+  }
+}
 export async function uploadFile(formData: FormData) {
   const patientId = formData.get("patientId") as string;
   const url = formData.get("url") as string;
@@ -651,38 +690,52 @@ export async function createClientByAdmin(formData: FormData) {
   await createLog("ADMIN_ADD_CLIENT", `Created account for ${email}`, "Super Admin");
   
   redirect("/saas-admin/clients");
-}
+}// في ملف app/actions.ts
 
-// 👇 2. حذف حساب الطبيب نهائياً
+
+// في ملف app/actions.ts
+
 export async function deleteClient(formData: FormData) {
-  const clientId = formData.get("clientId") as string;
-  
-  // حماية: تأكد أن الطالب هو أدمن (اختياري، يفضل وجوده)
-  const cookieStore = await cookies();
-  const role = cookieStore.get("mysaas_role")?.value;
-  if (role !== "super_admin" && role !== "admin" && role !== "superadmin") return;
+  const clientId = formData.get("id")?.toString();
+  if (!clientId) return;
 
-  await db.client.delete({ where: { id: clientId } });
+  try {
+    // 1. عملية الحذف (التي نجحت بالفعل حسب اللوج)
+    await db.client.delete({
+      where: { id: clientId }
+    });
+    
+    console.log("✅ تم الحذف بنجاح");
+
+  } catch (error) {
+    console.error("❌ حدث خطأ أثناء الحذف:", error);
+    return; // نتوقف هنا فقط إذا كان هناك خطأ حقيقي في الداتابيس
+  }
+
+  // 🚀 2. التوجيه (يجب أن يكون خارج الـ catch تماماً)
+  revalidatePath("/saas-admin/clients");
   redirect("/saas-admin/clients");
 }
-
-// --- 6. Delete Patient ---
 export async function deletePatient(formData: FormData) {
   const clientId = await getClientId();
   if (!clientId) return;
 
-  const patientId = formData.get("patientId")?.toString();
+  const id = formData.get("id")?.toString();
 
-  if (patientId) {
-    await db.patient.delete({
-      where: {
-        id: patientId,
-        clientId: clientId // 🔒 أمان: التأكد أن الطبيب يملك هذا المريض
-      }
-    });
+  if (id) {
+    try {
+      await db.patient.delete({
+        where: { 
+          id,
+          clientId // حماية: نتأكد أن المريض يتبع لهذا الطبيب فقط
+        }
+      });
+      
+      revalidatePath("/dashboard/patients");
+    } catch (error) {
+      console.log("Error deleting patient:", error);
+    }
   }
-
-  redirect("/dashboard/patients");
 }
 
 // --- 7. Create Appointment (From General Page) ---
@@ -706,7 +759,7 @@ export async function createGeneralAppointment(formData: FormData) {
         type: type || "General Consultation",
         notes: notes || "",
         status: "Scheduled",
-        price: price
+       
       }
     });
   }
@@ -845,7 +898,7 @@ export async function createQuickVisit(formData: FormData) {
           patientId: newPatient.id,
           date: new Date(), // الوقت الحالي
           type,
-          price: amount,
+          
           status: "Completed", // نفترض أن الزيارة تمت
           notes: "Quick Visit Entry"
         }
@@ -889,7 +942,7 @@ export async function createVisitForPatient(formData: FormData) {
           patientId,
           date: new Date(),
           type,
-          price,
+        
           status: "Completed", // لأن المريض موجود بالفعل
         }
       });
@@ -1056,43 +1109,40 @@ export async function createMockDocument() {
 // 1. استيراد bcrypt في أعلى الملف
 
 
+// 👇 استبدل دالة updateSettings القديمة بهذه الدالة المحدثة
 export async function updateSettings(formData: FormData) {
   const clientId = await getClientId();
   if (!clientId) return;
 
-  // جلب البيانات من الفورم
-  const doctorName = formData.get("doctorName") as string;
-  const clinicName = formData.get("clinicName") as string; // 👈 تأكد من وجود هذا
-  const specialty = formData.get("specialty") as string;
-  const phone = formData.get("phone") as string;
-  const address = formData.get("address") as string;
-  const city = formData.get("city") as string;
-  const email = formData.get("email") as string;
-  const newPassword = formData.get("newPassword") as string;
+  // 1. قراءة البيانات من الفورم
+  const doctorName = formData.get("doctorName")?.toString();
+  const clinicName = formData.get("clinicName")?.toString();
+  const phone = formData.get("phone")?.toString();
+  const address = formData.get("address")?.toString();
+  const city = formData.get("city")?.toString();
+  const specialty = formData.get("specialty")?.toString();
+  
+  // ✅ هذا هو السطر الناقص: قراءة العملة
+  const currency = formData.get("currency")?.toString(); 
 
-  let updateData: any = {
-    doctorName,
-    clinicName, // 👈 وتأكد من وجوده هنا داخل data
-    specialty,
-    phone,
-    address,
-    city,
-    email
-  };
-
-  if (newPassword && newPassword.trim().length > 0) {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    updateData.password = hashedPassword;
-  }
-
+  // 2. تحديث قاعدة البيانات
   await db.client.update({
     where: { id: clientId },
-    data: updateData
+    data: {
+      doctorName,
+      clinicName,
+      phone,
+      address,
+      city,
+      specialty,
+      // ✅ حفظ العملة الجديدة
+      currency: currency 
+    }
   });
 
-  // تحديث الصفحات لكي تظهر البيانات الجديدة فوراً
+  // 3. تحديث الصفحات لتظهر التغييرات فوراً
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/invoices"); // 👈 أضف هذا لتحديث الفواتير
 }
 // app/actions.ts
 // 📄 app/actions.ts
@@ -1518,29 +1568,31 @@ export async function deleteMessage(formData: FormData) {
 // app/actions.ts
 
 // ✅ دالة فحص وتحديث الاشتراك أوتوماتيكياً
+// ✅ التعديل: إضافة try/catch لمنع توقف الموقع عند انقطاع النت
 export async function checkAndExpireSubscription(clientId: string) {
-  const client = await db.client.findUnique({ 
-    where: { id: clientId },
-    select: { subscriptionStatus: true, subscriptionEndsAt: true }
-  });
-
-  if (!client || !client.subscriptionEndsAt) return;
-
-  const now = new Date();
-  const expiryDate = new Date(client.subscriptionEndsAt);
-
-  // إذا كان التاريخ الحالي أكبر من تاريخ الانتهاء، والحالة ما زالت ACTIVE
-  if (now > expiryDate && client.subscriptionStatus === "ACTIVE") {
-    
-    // ⛔ إيقاف الحساب فوراً
-    await db.client.update({
+  try {
+    const client = await db.client.findUnique({
       where: { id: clientId },
-      data: { subscriptionStatus: "INACTIVE" }
+      select: { subscriptionStatus: true, subscriptionEndsAt: true }
     });
 
-    // تحديث الكوكيز لكي يطرده الـ Middleware
-    const cookieStore = await cookies();
-    cookieStore.set("mysaas_status", "INACTIVE", { httpOnly: true, path: "/" });
+    if (!client) return;
+
+    // منطق التحقق من انتهاء الاشتراك
+    if (client.subscriptionStatus === 'ACTIVE' && client.subscriptionEndsAt) {
+      const now = new Date();
+      const endDate = new Date(client.subscriptionEndsAt);
+
+      if (now > endDate) {
+        await db.client.update({
+          where: { id: clientId },
+          data: { subscriptionStatus: 'EXPIRED' }
+        });
+      }
+    }
+  } catch (error) {
+    // 👇 في حالة فشل الاتصال بالداتابيس، لا توقف الموقع، فقط اطبع رسالة في التيرمينال
+    console.warn("⚠️ Could not check subscription status (Database might be sleeping or offline).");
   }
 }
 
@@ -1728,4 +1780,58 @@ export async function updateOnboarding(data: any) {
       onboardingCompleted: true,
     }
   });
+}
+
+
+// 👇 دالة لتحديث سعر الفاتورة
+export async function updateInvoicePrice(formData: FormData) {
+  const clientId = await getClientId();
+  if (!clientId) return;
+
+  const invoiceId = formData.get("invoiceId")?.toString();
+  const newAmount = parseFloat(formData.get("amount")?.toString() || "0");
+
+  if (invoiceId) {
+    await db.invoice.update({
+      where: { 
+        id: invoiceId,
+        clientId: clientId 
+      },
+      data: { 
+        amount: newAmount 
+      }
+    });
+
+    revalidatePath("/dashboard/appointments");
+    revalidatePath("/dashboard");
+  }
+}
+
+// أضف هذا في app/actions.ts
+
+
+
+export async function updateClinicSettings(formData: FormData) {
+  const clientId = await getClientId();
+  if (!clientId) return;
+
+  const doctorName = formData.get("doctorName")?.toString();
+  const clinicName = formData.get("clinicName")?.toString();
+  const currency = formData.get("currency")?.toString(); // 👈 هذا هو الأهم
+  const phone = formData.get("phone")?.toString();
+  const address = formData.get("address")?.toString();
+
+  await db.client.update({
+    where: { id: clientId },
+    data: {
+      doctorName,
+      clinicName,
+      currency, // ✅ سيتم حفظ العملة هنا
+      phone,
+      address
+    }
+  });
+
+  revalidatePath("/dashboard"); // تحديث الداشبورد لتظهر العملة الجديدة فوراً
+  revalidatePath("/dashboard/settings");
 }

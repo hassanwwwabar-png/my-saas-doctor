@@ -2,15 +2,24 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { 
   Users, Search, Eye, 
-  CheckCircle, XCircle, Building, Mail 
+  CheckCircle, XCircle, Building, Mail, AlertTriangle 
 } from "lucide-react";
 
 export default async function ClientsPage() {
   
-  // 1. جلب العملاء بدون علاقات معقدة قد تكسر الموقع
-  const clients = await db.client.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  // ✅ الحل هنا: أضفنا : any[] لنخبر TypeScript أن هذا متغير مسموح
+  let clients: any[] = []; 
+  let dbError = false;
+
+  try {
+    clients = await db.client.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("❌ Database Connection Error:", error);
+    dbError = true;
+    clients = [];
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -29,7 +38,7 @@ export default async function ClientsPage() {
           </p>
         </div>
 
-        {/* Search Bar (Static for now) */}
+        {/* Search Bar */}
         <div className="relative">
            <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
            <input 
@@ -38,6 +47,14 @@ export default async function ClientsPage() {
            />
         </div>
       </div>
+
+      {/* ⚠️ Error Alert */}
+      {dbError && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 text-red-700 font-bold text-sm">
+          <AlertTriangle className="w-5 h-5 text-red-600" />
+          <span>Database connection failed. Please check your internet or Neon status.</span>
+        </div>
+      )}
 
       {/* Clients Table */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
@@ -54,7 +71,7 @@ export default async function ClientsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {clients.map((client) => (
+              {clients.map((client: any) => (
                 <tr key={client.id} className="hover:bg-slate-50/50 transition-colors group">
                   
                   {/* Name & Clinic */}
@@ -66,7 +83,7 @@ export default async function ClientsPage() {
                       <div>
                         <p className="font-bold text-slate-800 text-sm">{client.doctorName}</p>
                         <div className="flex items-center gap-1 text-xs text-slate-400 font-bold">
-                           <Building className="w-3 h-3" /> {client.clinicName}
+                           <Building className="w-3 h-3" /> {client.clinicName || "No Clinic Name"}
                         </div>
                       </div>
                     </div>
@@ -86,7 +103,7 @@ export default async function ClientsPage() {
                     </div>
                   </td>
 
-                  {/* Status (تم تصحيح الاسم هنا) */}
+                  {/* Status */}
                   <td className="p-5">
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide ${
                       client.status === 'Active' 
@@ -106,8 +123,7 @@ export default async function ClientsPage() {
                   {/* Actions */}
                   <td className="p-5 text-right">
                     <Link 
-                      // تم تصحيح الرابط ليتوافق مع المجلدات الموجودة
-                      href={`/saas-admin/messages/${client.id}`} 
+                      href={`/saas-admin/clients/${client.id}`} 
                       className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all text-xs font-bold shadow-sm"
                     >
                       <Eye className="w-4 h-4" /> View Details
@@ -123,9 +139,11 @@ export default async function ClientsPage() {
             <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-4">
                <Users className="w-10 h-10" />
             </div>
-            <h3 className="text-lg font-black text-slate-800">No clients found.</h3>
+            <h3 className="text-lg font-black text-slate-800">
+                {dbError ? "Database is offline." : "No clients found."}
+            </h3>
             <p className="text-slate-400 text-sm font-bold max-w-xs mt-2">
-              Doctors who register on your platform will appear here.
+              {dbError ? "Check your internet connection." : "Doctors who register on your platform will appear here."}
             </p>
           </div>
         )}
